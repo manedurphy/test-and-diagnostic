@@ -18,12 +18,10 @@
 # limitations under the License.
 #######################################################################################
 
+. "$(dirname "$0")/speedtest_shared.sh"
+
 #This script is used to enable / start the speedtest tool
 LOG_FILE=/rdklogs/logs/speedtest-init.log
-
-log_message() {
-    echo "$(date +"[%Y-%m-%d %H:%M:%S]") $1" >> $LOG_FILE
-}
 
 execute_speedtest() {
     log_message "$1"
@@ -40,6 +38,14 @@ ST_CLIENT_TYPE=`dmcli eRT retv Device.IP.Diagnostics.X_RDKCENTRAL-COM_SpeedTest.
 if [ "x$ST_CLIENT_TYPE" = 'x1' ]; then
     if [ -f /usr/bin/speedtest-client ]; then
         execute_speedtest "Executing speedtest-client-c for $BOX_TYPE" "nice -n 19 /usr/bin/speedtest-client"
+    elif [ -f /etc/dsm.config ]; then
+        # If the package already exists, then no need to install it again. Just set the state to active.
+        if [ ! -d /apps/packages/speedtest_client ]; then
+            install_speedtest_client_with_dsm
+        fi
+
+        index="$(get_speedtest_client_index)"
+        rbuscli method_values "Device.SoftwareModules.ExecutionUnit.$index.SetRequestedState()" RequestedState string Active
     else
         log_message "Unsupported device model"
     fi

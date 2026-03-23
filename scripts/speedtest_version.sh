@@ -18,11 +18,20 @@
 # limitations under the License.
 #######################################################################################
 
+. "$(dirname "$0")/speedtest_shared.sh"  
+
 #This script is used to execute speedtest-client binary to retrieve version
-VERSION_LOG_FILE=/tmp/.speedtest-client-version.log
+LOG_FILE=/tmp/.speedtest-client-version.log
 
 if [ -f /usr/bin/speedtest-client ]; then
-    /usr/bin/speedtest-client -v > "$VERSION_LOG_FILE"
+    /usr/bin/speedtest-client -v > "$LOG_FILE"
+elif [ -f /etc/dsm.config ]; then
+    # If the package already exists, then no need to install it again. Just set the state to active.
+    if [ ! -d /apps/packages/speedtest_client ]; then
+        install_speedtest_client_with_dsm
+    fi
+
+    LD_LIBRARY_PATH="/apps/packages/speedtest_client/rootfs/usr/lib" /apps/packages/speedtest_client/rootfs/usr/bin/speedtest-client -v > "$LOG_FILE"
 else
-    echo "Unsupported device model" > "$VERSION_LOG_FILE"
+    echo "Unsupported device model" > "$LOG_FILE"
 fi
